@@ -1,4 +1,9 @@
-﻿using System;
+﻿/*
+ * Copyright 2013, Fog Creek Software
+ * License: http://www.apache.org/licenses/LICENSE-2.0 
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -1112,9 +1117,8 @@ namespace AlchemySharp {
 
             return sb.ToString();
         }
-    
 
-}
+    }
 
     public class Insert : IModifyQuery {
         private readonly DB db;
