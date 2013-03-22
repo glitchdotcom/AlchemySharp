@@ -20,7 +20,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 
 
-namespace Dapper
+namespace AlchemySharp.Embed.Dapper
 {
     /// <summary>
     /// Dapper, a light weight object mapper for ADO.NET

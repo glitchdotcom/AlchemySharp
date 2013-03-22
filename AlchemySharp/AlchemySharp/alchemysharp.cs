@@ -13,7 +13,7 @@ using System.Linq;
 using System.Text;
 using System.Transactions;
 using System.Web;
-using Dapper;
+using AlchemySharp.Embed.Dapper;
 
 namespace AlchemySharp {
     public class AlchemySharpException : Exception {
@@ -443,7 +443,7 @@ namespace AlchemySharp {
             var quoted = name.Quote();
 
             if (alias != null) {
-                return "{0} as {1}".Fmt(quoted, alias);
+                return "{0} as {1}".Fmt(quoted, alias.Quote());
             }
 
             return quoted;
