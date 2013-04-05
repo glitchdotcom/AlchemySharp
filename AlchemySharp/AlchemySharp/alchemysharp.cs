@@ -76,8 +76,8 @@ namespace AlchemySharp {
                 return new Function("CAST", new Cast(expr, dataType));
             }
             
-            public static Selectable Count(object expr) {
-                return new Function("COUNT", expr);
+            public static Selectable Count(object expr = null) {
+                return new Function("COUNT", expr ?? new Raw("*"));
             }
 
             /// <summary>
@@ -573,46 +573,6 @@ namespace AlchemySharp {
     }
 
     public abstract class Expr : SQLNode {
-        public Expr Eq(object right) {
-            return new BinaryExpr(this, right.AsExpr(), "=");
-        }
-
-        public Expr Ne(object right) {
-            return new BinaryExpr(this, right.AsExpr(), "<>");
-        }
-
-        public Expr Lt(object right) {
-            return new BinaryExpr(this, right.AsExpr(), "<");
-        }
-
-        public Expr Lte(object right) {
-            return new BinaryExpr(this, right.AsExpr(), "<=");
-        }
-
-        public Expr Gt(object right) {
-            return new BinaryExpr(this, right.AsExpr(), ">");
-        }
-
-        public Expr Gte(object right) {
-            return new BinaryExpr(this, right.AsExpr(), ">=");
-        }
-
-        public Expr Plus(object right) {
-            return new BinaryExpr(this, right.AsExpr(), "+");
-        }
-
-        public Expr And(Expr right) {
-            return new BinaryExpr(this, right, "and");
-        }
-
-        public Expr Or(Expr right) {
-            return new BinaryExpr(this, right, "or");
-        }
-
-        public Expr Minus(object right) {
-            return new BinaryExpr(this, right.AsExpr(), "-");
-        }
-
         public Expr Contains(string right) {
             return AlchemySharp.Like.Substring(this, right);
         }
@@ -633,12 +593,20 @@ namespace AlchemySharp {
             return new IsNull(this);
         }
 
+        public Expr IsNotNull() {
+            return ~this.IsNull();
+        }
+
         public Expr In(Query query) {
             return new BinaryExpr(this, new Parens(query), "in");
         }
 
         public Expr In(IEnumerable<object> values) {
             return new BinaryExpr(this, new ParensList(values), "in");
+        }
+
+        public Expr In(params object[] values) {
+            return this.In((IEnumerable<object>)values);
         }
 
         public Selectable As(string name) {
@@ -654,43 +622,47 @@ namespace AlchemySharp {
         }
 
         public static Expr operator |(Expr left, Expr right) {
-            return left.Or(right);
+            return new BinaryExpr(left, right, "or");
         }
 
         public static Expr operator &(Expr left, Expr right) {
-            return left.And(right);
+            return new BinaryExpr(left, right, "and");
         }
 
         public static Expr operator >(Expr left, object right) {
-            return left.Gt(right);
+            return new BinaryExpr(left, right.AsExpr(), ">");
         }
 
         public static Expr operator <(Expr left, object right) {
-            return left.Lt(right);
+            return new BinaryExpr(left, right.AsExpr(), "<");
         }
 
         public static Expr operator <=(Expr left, object right) {
-            return left.Lte(right);
+            return new BinaryExpr(left, right.AsExpr(), "<=");
         }
 
         public static Expr operator >=(Expr left, object right) {
-            return left.Gte(right);
+            return new BinaryExpr(left, right.AsExpr(), ">=");
         }
 
         public static Expr operator ==(Expr left, object right) {
-            return left.Eq(right);
+            return new BinaryExpr(left, right.AsExpr(), "="); ;
         }
 
         public static Expr operator !=(Expr left, object right) {
-            return left.Ne(right);
+            return new BinaryExpr(left, right.AsExpr(), "<>"); ;
+        }
+
+        public static Expr operator ~(Expr self) {
+            return new UnaryExpr("not", self);
         }
 
         public static Expr operator +(Expr left, object right) {
-            return left.Plus(right);
+            return new BinaryExpr(left, right.AsExpr(), "+");
         }
 
         public static Expr operator -(Expr left, object right) {
-            return left.Minus(right);
+            return new BinaryExpr(left, right.AsExpr(), "-");
         }
 
         public override bool Equals(object obj) {
@@ -765,6 +737,18 @@ namespace AlchemySharp {
         }
     }
 
+    internal class Raw : Expr {
+        private readonly string raw;
+
+        public Raw(string raw) {
+            this.raw = raw;
+        }
+
+        public override string ToSQL(Parameters parameters) {
+            return raw;
+        }
+    }
+
     internal class Parens : Expr {
         private readonly Expr expr;
 
@@ -806,6 +790,20 @@ namespace AlchemySharp {
 
         public override string ToSQL(Parameters parameters) {
             return "({0} {1} {2})".Fmt(left.ToSQL(parameters), op, right.ToSQL(parameters));
+        }
+    }
+
+    internal class UnaryExpr : Expr {
+        private readonly Expr self;
+        private readonly string op;
+
+        public UnaryExpr(string op, Expr self) {
+            this.op = op;
+            this.self = self;
+        }
+
+        public override string ToSQL(Parameters parameters) {
+            return "({0} {1})".Fmt(op, self.ToSQL(parameters));
         }
     }
 
@@ -867,7 +865,7 @@ namespace AlchemySharp {
 
             if (!object.Equals(literal, null) && left != null && right != null) {
                 var key = literal.Value as String;
-                return left[key].Eq(right[key]);
+                return left[key] == (right[key]);
             }
 
             return condition;

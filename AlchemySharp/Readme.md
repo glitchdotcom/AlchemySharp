@@ -20,6 +20,61 @@ Getting Started
             .Select(person => person.name);
     }
 
+Expressions
+-----------
+AlchemySharp overloads a number of C# operators to allow you to build up SQL expressions:
+
+	var weather = db["Weather"];
+	var cold = db.Query(weather.All())
+		.From(weather)
+		.Where(weather["temperature"] <= 0 & weather["description"].Contains("snow"))
+		.Execute();
+
+... here we see the ```<=``` and ```&``` operators in action. The full list of operators includes:
+
+	==	Equal
+	!=	Not equal
+	<	Less than
+	<=	Less than or equal
+	>	Greater than
+	>=	Greater than or equal
+	+	Plus
+	-	Minus
+	&	And
+	|	Or
+	~	Not
+
+Furthermore, AlchemySharp expressions implement a number of methods to help you build expressions:
+
+	// substring matching
+	.Like(string like)
+	.StartsWith(string prefix)
+	.EndsWith(string suffix)
+	.Contains(string substring)
+
+	// NULL handling
+	.IsNull()
+	.IsNotNull()
+
+	// List handling
+	.In(params object[] values)
+
+**Helpful tip**: Expressions are just objects that can be held in variables which can help keep things readable:
+
+	var snowing = weather["description"].Contains("snow");
+	var warm = weather["temperature"] >= 10;
+	var nice = db.Query(weather.All())
+		.From(weather)
+		.Where(warm | snowing)
+		.Execute();
+
+**Values are automatically parameterized**, including values passed to ```.In()```. This helps prevent an entire class of performance and security issues:
+
+    var results = db.Query(posts.All())
+        .From(posts)
+        .Where(posts["title"] == "How to Make Money Slowly!")
+        .Execute()
+        .Select(post => post.title);
 
 Joins
 -----
@@ -33,16 +88,58 @@ Joins
         .Execute()
         .Select(row => new { Author = row.name, Title = row.title });
 
+... outer joins can be created by calling the ```.OuterJoin()``` method instead.
 
-Parameterized Queries
----------------------
-Queries are automatically paramerized, preventing an entire class of performance and security issues:
+Unions
+------
+	// Does this make any sense? No, but you can do it!
+	var easy = db.Query(Posts["title"].As("description"))
+		.From(Posts)
+		.Where(Posts["title"].Contains("Easy"));
 
-    var results = db.Query(posts.All())
-        .From(posts)
-        .Where(posts["title"] == "How to Make Money Slowly!")
-        .Execute()
-        .Select(post => post.title);
+	var leonardo = db.Query(People["name"].As("description"))
+		.From(People)
+		.Where(People["name"].Contains("Leonardo"));
+
+	var results = easy.Union(leonardo)
+		.Execute()
+		.Select(row => row.description);
+
+Subqueries
+----------
+You can write subqueries if you need to, but you should generally try not to:
+
+	// Basically a join done with a subquery, which is a bad idea.
+	var authors = db.Query(People["id"])
+		.From(People)
+		.Where(People["id"].In(1, 3));
+
+	var results = db.Query(Posts.All())
+		.From(Posts)
+		.Where(Posts["author"].In(authors))
+		.Execute();
+
+	// ... and this one is done with a correlated subquery, which is even worse.
+	results = db.Query(Posts.All())
+		.From(Posts)
+		.WhereExists(db.Query(People["id"])
+			.From(People)
+			.Where(People["id"] == Posts["author"])
+			.Where(People["id"].In(1, 3))
+		)
+		.Execute();
+
+Aggregates
+----------
+	var results = db.Query(Posts["author"], Sql.Func.Max(Posts["title"]), Sql.Func.Count().As("count"))
+		.From(Posts)
+		.GroupBy(Posts["author"])
+		.Execute();
+
+```Sql.Func``` implements a number of the relevant aggregate functions including:
+
+	.Count()
+	.Max(Expr)
 
 
 Reusable Conditions
