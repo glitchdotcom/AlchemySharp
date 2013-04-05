@@ -8,8 +8,8 @@
     <ProjectGuid>{37294ABD-840B-41BF-A17D-66FFCAD0661C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SQLAlchemy</RootNamespace>
-    <AssemblyName>SQLAlchemy</AssemblyName>
+    <RootNamespace>AlchemySharp</RootNamespace>
+    <AssemblyName>AlchemySharp</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
